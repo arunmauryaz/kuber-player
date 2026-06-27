@@ -1,507 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kuber Player — SDK Developer Sandbox</title>
-  <!-- Outfit Google Font -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg-color: #0b0f19;
-      --panel-bg: rgba(22, 28, 45, 0.6);
-      --border-color: rgba(255, 255, 255, 0.08);
-      --accent-color: #6366f1;
-      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-      --text-color: #f3f4f6;
-      --text-muted: #9ca3af;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: 'Outfit', sans-serif;
-      min-height: 100vh;
-      overflow-x: hidden;
-      display: flex;
-      flex-direction: column;
-      background-image: 
-        radial-gradient(at 10% 10%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-        radial-gradient(at 90% 90%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
-      background-attachment: fixed;
-    }
-
-    header {
-      padding: 24px 40px;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(11, 15, 25, 0.5);
-      backdrop-filter: blur(10px);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-
-    .logo-container {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .logo-icon {
-      width: 32px;
-      height: 32px;
-      background: var(--accent-gradient);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 1.2rem;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
-    }
-
-    h1 {
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-
-    .badge {
-      background-color: rgba(99,102,241,0.2);
-      border: 1px solid rgba(99,102,241,0.3);
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #818cf8;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    main {
-      flex: 1;
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 30px;
-      padding: 30px 40px;
-      max-width: 1600px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .left-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 30px;
-    }
-
-    .glass-card {
-      background: var(--panel-bg);
-      backdrop-filter: blur(12px) saturate(180%);
-      -webkit-backdrop-filter: blur(12px) saturate(180%);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    }
-
-    h2 {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      padding-bottom: 12px;
-    }
-
-    /* Form Styles */
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .form-control {
-      width: 100%;
-      background-color: rgba(0,0,0,0.3);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 10px 14px;
-      color: var(--text-color);
-      font-family: inherit;
-      font-size: 0.9rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .form-control:focus {
-      border-color: var(--accent-color);
-    }
-
-    /* Button styles */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-family: inherit;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      border: none;
-      gap: 8px;
-    }
-
-    .btn-primary {
-      background: var(--accent-gradient);
-      color: #fff;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
-    }
-
-    .btn-danger {
-      background-color: rgba(239, 68, 68, 0.2);
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      color: #f87171;
-    }
-
-    .btn-danger:hover {
-      background-color: rgba(239, 68, 68, 0.35);
-    }
-
-    /* Progress bar upload */
-    .progress-bar-container {
-      margin-top: 15px;
-      display: none;
-    }
-
-    .progress-bg {
-      width: 100%;
-      height: 6px;
-      background-color: rgba(255,255,255,0.1);
-      border-radius: 3px;
-      overflow: hidden;
-      margin-bottom: 6px;
-    }
-
-    .progress-fill {
-      height: 100%;
-      width: 0%;
-      background: var(--accent-gradient);
-      border-radius: 3px;
-      transition: width 0.1s;
-    }
-
-    .status-text {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    /* Video list styling */
-    .video-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      max-height: 400px;
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-
-    .video-list::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    .video-list::-webkit-scrollbar-thumb {
-      background-color: rgba(255,255,255,0.15);
-      border-radius: 2px;
-    }
-
-    .video-item {
-      background: rgba(0,0,0,0.2);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .video-item-info h3 {
-      font-size: 0.9rem;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .video-item-info p {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .status-badge {
-      display: inline-block;
-      font-size: 0.65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      padding: 2px 6px;
-      border-radius: 4px;
-      margin-top: 6px;
-    }
-
-    .status-pending { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
-    .status-processing { background-color: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
-    .status-completed { background-color: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
-    .status-failed { background-color: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-
-    .video-item-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-    }
-
-    .video-item-actions button {
-      padding: 6px 12px;
-      font-size: 0.75rem;
-      border-radius: 6px;
-    }
-
-    .no-videos {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      text-align: center;
-      padding: 20px 0;
-    }
-
-    /* Right Section: Player & Analytics */
-    .right-content {
-      display: flex;
-      flex-direction: column;
-      gap: 30px;
-    }
-
-    .player-section {
-      width: 100%;
-      aspect-ratio: 16/9;
-      position: relative;
-      border-radius: 16px;
-      overflow: hidden;
-      border: 1px solid var(--border-color);
-      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
-      background-color: #020617;
-    }
-
-    .player-placeholder {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-muted);
-      font-size: 1rem;
-      flex-direction: column;
-      gap: 15px;
-      text-align: center;
-      background: radial-gradient(circle, rgba(15, 23, 42, 0.8) 0%, rgba(2, 6, 23, 1) 100%);
-    }
-
-    .player-placeholder svg {
-      width: 48px;
-      height: 48px;
-      stroke: var(--text-muted);
-      opacity: 0.5;
-    }
-
-    /* Analytics Dashboard Grid */
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 20px;
-      width: 100%;
-    }
-
-    .stats-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      padding-bottom: 12px;
-    }
-
-    .stats-header-row h2 {
-      border: none;
-      margin: 0;
-      padding: 0;
-    }
-
-    .stat-cards-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-    }
-
-    .stat-card {
-      background: rgba(0,0,0,0.25);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 20px;
-      text-align: center;
-    }
-
-    .stat-num {
-      font-size: 1.8rem;
-      font-weight: 700;
-      background: var(--accent-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 4px;
-    }
-
-    .stat-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Kuber Player — Your personal streaming library. Watch movies and series from your local media collection." />
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>Kuber Player</title>
+  <link rel="stylesheet" href="/src/ui/theme.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>▶</text></svg>" />
 </head>
 <body>
 
-  <header>
-    <div class="logo-container">
-      <div class="logo-icon">K</div>
-      <div>
-        <h1>Kuber Player</h1>
-        <p style="font-size: 0.7rem; color: var(--text-muted);">Decoupled Streaming Engine & SDK</p>
-      </div>
+  <!-- ── Navigation ──────────────────────────────────────── -->
+  <nav id="navbar">
+    <div class="nav-logo" id="logo-btn">KUBER</div>
+    <div class="nav-links">
+      <a class="nav-link" id="nav-home" href="#home">Home</a>
+      <a class="nav-link" id="nav-movies" href="#movies">Movies</a>
+      <a class="nav-link" id="nav-series" href="#series">Series</a>
     </div>
-    <div class="badge">V1.0 API REST ACTIVE</div>
-  </header>
-
-  <main>
-    <div class="left-panel">
-      <!-- Videos List -->
-      <div class="glass-card" style="flex: 1;">
-        <h2>Media Repository</h2>
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Drop media files (MP4, MKV, AVI, WebM, etc.) into the <code>media/</code> folder. They will register and update instantly.</p>
-        <div class="form-group">
-          <select id="video-select" class="form-control">
-            <option value="">-- Choose a Video --</option>
-          </select>
-        </div>
-        <div class="video-list" id="video-list">
-          <p class="no-videos">Loading repository...</p>
-        </div>
+    <div class="nav-right">
+      <div class="nav-search" id="search-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+        </svg>
+        <input id="search-input" type="search" placeholder="Search library..." autocomplete="off" />
       </div>
+      <button id="log-toggle-btn" title="Toggle server log">
+        <span class="dot"></span>
+        Live Log
+      </button>
     </div>
+  </nav>
 
-    <!-- Right Side: Player and Stats -->
-    <div class="right-content">
-      <!-- Player Wrapper -->
-      <div class="player-section">
-        <div id="player-wrapper" style="width: 100%; height: 100%;">
-          <div class="player-placeholder">
-            <!-- SVG Play Icon -->
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <polygon points="6 3 20 12 6 21 6 3"></polygon>
-            </svg>
-            <p>Select a video from the repository to initialize Kuber Player SDK</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Analytics Dashboard -->
-      <div class="glass-card">
-        <div class="stats-header-row">
-          <h2>Server Analytics Engine</h2>
-          <button id="refresh-analytics" class="btn" style="padding: 6px 12px; font-size: 0.75rem; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); color: #fff;">Refresh</button>
-        </div>
-
-        <div class="dashboard-grid">
-          <div>
-            <div class="stat-cards-grid" id="global-analytics-stats">
-              <div class="stat-card">
-                <div class="stat-num">-</div>
-                <div class="stat-label">Total Plays</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-num">-</div>
-                <div class="stat-label">Avg Watch Time</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-num">-</div>
-                <div class="stat-label">Avg Completion %</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-num">-</div>
-                <div class="stat-label">Stalls (Buffers)</div>
-              </div>
-            </div>
-          </div>
-          
-          <div style="border-left: 1px solid rgba(255,255,255,0.06); padding-left: 20px;" id="single-video-analytics">
-            <p style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding-top: 10px;">Select a video to view real-time audience retention statistics.</p>
-          </div>
-        </div>
-      </div>
-      <!-- Live Log Panel -->
-      <div class="glass-card" id="log-panel" style="margin-top: 0;">
-        <div class="stats-header-row">
-          <h2>🖥️ Live Server Logs</h2>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <span id="log-status-dot" style="width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;box-shadow:0 0 6px #4ade80;"></span>
-            <span id="log-status-text" style="font-size:0.75rem;color:#9ca3af;">Connecting…</span>
-            <button id="log-clear-btn" class="btn" style="padding:4px 10px;font-size:0.72rem;background:rgba(255,255,255,0.05);border:1px solid var(--border-color);color:#fff;">Clear</button>
-            <button id="log-pause-btn" class="btn" style="padding:4px 10px;font-size:0.72rem;background:rgba(255,255,255,0.05);border:1px solid var(--border-color);color:#fff;">Pause</button>
-          </div>
-        </div>
-        <div id="log-output" style="
-          font-family: 'JetBrains Mono', 'Fira Code', monospace;
-          font-size: 0.72rem;
-          line-height: 1.55;
-          background: rgba(0,0,0,0.35);
-          border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 8px;
-          padding: 10px 14px;
-          height: 200px;
-          overflow-y: auto;
-          color: #d1d5db;
-          white-space: pre-wrap;
-          word-break: break-all;
-        "></div>
-      </div>
+  <!-- ── Main App ─────────────────────────────────────────── -->
+  <main id="app">
+    <div class="loading-page">
+      <div class="spinner"></div>
+      <span style="font-size:13px;color:var(--text-2)">Loading library…</span>
     </div>
   </main>
+
+  <!-- ── Log Panel ────────────────────────────────────────── -->
+  <div id="log-panel">
+    <div class="log-header">
+      <span class="log-header-title">Server Log</span>
+      <button class="log-close" id="log-close-btn">✕</button>
+    </div>
+    <div id="log-output"></div>
+  </div>
 
   <script type="module" src="/src/main.ts"></script>
 </body>
