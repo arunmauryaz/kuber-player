@@ -1,0 +1,27 @@
+{
+  "name": "kuber-player",
+  "version": "0.2.0",
+  "description": "Professional open-source video streaming platform — decoupled backend + frontend SDK",
+  "private": true,
+  "scripts": {
+    "start":          "node backend/mock_server.js & cd frontend && npm run dev",
+    "backend":        "node backend/mock_server.js",
+    "frontend":       "cd frontend && npm run dev",
+    "install:all":    "cd frontend && npm install",
+    "typecheck":      "cd frontend && npx tsc --noEmit",
+    "build":          "cd frontend && npm run build"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "video-player",
+    "streaming",
+    "hls",
+    "typescript",
+    "rust",
+    "self-hosted"
+  ],
+  "license": "MIT"
+}

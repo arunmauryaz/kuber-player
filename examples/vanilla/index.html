@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kuber Player — Vanilla Integration Example</title>
+  
+  <!-- Import Kuber Player Stylesheet (built from Vite library mode) -->
+  <link rel="stylesheet" href="../../frontend/dist/kuber-player.css">
+  
+  <style>
+    body {
+      background-color: #030712;
+      color: #f3f4f6;
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 40px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    h1 {
+      margin-bottom: 8px;
+    }
+    .lead {
+      color: #9ca3af;
+      margin-bottom: 40px;
+    }
+    .player-container {
+      width: 100%;
+      aspect-ratio: 16/9;
+      margin-bottom: 30px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 40px;
+    }
+    .card {
+      background-color: #111827;
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 8px;
+      padding: 24px;
+    }
+    code {
+      background-color: #1f2937;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #f472b6;
+      font-family: monospace;
+    }
+    pre {
+      background-color: #1f2937;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-top: 10px;
+      color: #a7f3d0;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Kuber Player</h1>
+  <p class="lead">Vanilla JavaScript & custom HTML5 tag integration showcase.</p>
+
+  <!-- Method 1: Programmatic constructor mounting -->
+  <h2>Method 1: Programmatic Constructor</h2>
+  <div class="player-container">
+    <div id="kuber-js-player"></div>
+  </div>
+
+  <!-- Method 2: HTML5 Custom Element Tag -->
+  <h2>Method 2: W3C Custom HTML Tag</h2>
+  <div class="player-container">
+    <kuber-player
+      src="http://localhost:8080/api/v1/video/test-video-id/playlist"
+      poster="http://localhost:8080/api/v1/video/test-video-id/thumbnail"
+      sprite-vtt="http://localhost:8080/api/v1/video/test-video-id/sprite"
+      autoplay="false"
+      muted="false">
+    </kuber-player>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>JavaScript SDK setup</h3>
+      <p>Import the bundle and instantiate `KuberPlayer` inside a selector:</p>
+      <pre>
+import { KuberPlayer } from './kuber-player.esm.js';
+
+const player = new KuberPlayer({
+  container: '#kuber-js-player',
+  src: 'http://localhost:8080/api/v1/video/123/playlist',
+  poster: 'http://localhost:8080/api/v1/video/123/thumbnail',
+  spriteVtt: 'http://localhost:8080/api/v1/video/123/sprite',
+  autoplay: false,
+  muted: false
+});
+      </pre>
+    </div>
+
+    <div class="card">
+      <h3>Web Component setup</h3>
+      <p>Simply register the element file and place the custom tag directly in your static HTML code:</p>
+      <pre>
+&lt;!-- Import script once --&gt;
+&lt;script src="kuber-player.umd.js"&gt;&lt;/script&gt;
+
+&lt;!-- Declare tag anywhere --&gt;
+&lt;kuber-player 
+  src="/api/v1/video/123/playlist"
+  poster="/api/v1/video/123/thumbnail"
+  sprite-vtt="/api/v1/video/123/sprite"&gt;
+&lt;/kuber-player&gt;
+      </pre>
+    </div>
+  </div>
+
+  <!-- Import compiled player engine -->
+  <script type="module">
+    import { KuberPlayer } from '../../frontend/src/core/KuberPlayer.ts';
+    import { HeatmapPlugin } from '../../frontend/src/plugins/HeatmapPlugin.ts';
+
+    // Mount Method 1 programmatically
+    const player = new KuberPlayer({
+      container: '#kuber-js-player',
+      src: 'http://localhost:8080/api/v1/video/sample/playlist',
+      poster: 'http://localhost:8080/api/v1/video/sample/thumbnail',
+      spriteVtt: 'http://localhost:8080/api/v1/video/sample/sprite',
+      autoplay: false,
+      muted: true,
+      plugins: [
+        new HeatmapPlugin()
+      ]
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "kuber-player-frontend",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "dev":        "vite --host 0.0.0.0 --port 3000 --force",
+    "start":      "vite --host 0.0.0.0 --port 3000 --force",
+    "build":      "tsc --noEmit && vite build",
+    "build:lib":  "tsc --noEmit && BUILD_MODE=lib vite build",
+    "preview":    "vite preview --host 0.0.0.0 --port 3000",
+    "typecheck":  "tsc --noEmit"
+  },
+  "dependencies": {
+    "hls.js": "^1.5.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0"
+  }
+}

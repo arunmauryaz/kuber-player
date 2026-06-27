@@ -1,0 +1,64 @@
+# ── Node ─────────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+
+# ── Vite ─────────────────────────────────────────────────────────────────────
+frontend/dist/
+frontend/.vite/
+
+# ── Environment ───────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+# Keep the example
+!.env.example
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+backend/server.log
+frontend/frontend.log
+
+# ── Runtime / PID files ───────────────────────────────────────────────────────
+.kuber_pids
+*.pid
+
+# ── Rust ─────────────────────────────────────────────────────────────────────
+backend/target/
+backend/Cargo.lock
+
+# ── Generated HLS stream files ───────────────────────────────────────────────
+backend/data/
+
+# ── Media files (large binaries — add your own via .env) ─────────────────────
+media/*.mp4
+media/*.mkv
+media/*.webm
+media/*.avi
+media/*.mov
+media/*.m4v
+media/*.wmv
+media/*.flv
+media/*.ts
+# But keep the README in media/
+!media/README.md
+
+# ── OS files ──────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ── IDE ────────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
