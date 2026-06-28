@@ -1,5 +1,6 @@
 import { KuberPlayer } from './core/KuberPlayer';
 import { AnalyticsPlugin } from './plugins/AnalyticsPlugin';
+import { injectPlayerControls } from './ui/PlayerControls';
 
 // ═══════════════════════════════════════════════════════════
 // CONFIG
@@ -31,6 +32,7 @@ interface WatchProgress { time: number; duration: number; pct: number; }
 // ═══════════════════════════════════════════════════════════
 let lib: Library = { movies: [], series: [] };
 let player: KuberPlayer | null = null;
+let controlsCleanup: (() => void) | null = null;
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let searchQuery = '';
 
@@ -50,13 +52,14 @@ function fmtSize(b: number): string {
   return `${b} B`;
 }
 
-// Title-based consistent gradient — gives each card a unique color from its name
+// Title-based consistent gradient — vivid colors so cards look great
 function titleGradient(title: string): string {
   let h = 0;
   for (let i = 0; i < title.length; i++) h = (title.charCodeAt(i) + ((h << 5) - h)) | 0;
   const hue  = Math.abs(h % 360);
-  const hue2 = (hue + 40) % 360;
-  return `linear-gradient(135deg, hsl(${hue},55%,22%) 0%, hsl(${hue2},45%,14%) 100%)`;
+  const hue2 = (hue + 50) % 360;
+  // Use higher lightness (38-50%) so cards are visibly colourful, not near-black
+  return `linear-gradient(145deg, hsl(${hue},65%,38%) 0%, hsl(${hue2},55%,24%) 100%)`;
 }
 
 // Title initials for card placeholder
@@ -367,9 +370,9 @@ function renderMoviesPage(): void {
   }
 
   app.innerHTML = `
-<div style="padding:40px 40px 8px">
-  <h1 style="font-size:28px;font-weight:800;letter-spacing:-0.5px;margin-bottom:4px">Movies</h1>
-  <p style="color:var(--text-2);font-size:14px">${movies.length} title${movies.length !== 1 ? 's' : ''}</p>
+<div class="page-header">
+  <h1>Movies</h1>
+  <p>${movies.length} title${movies.length !== 1 ? 's' : ''}</p>
 </div>
 <div class="section">
   <div class="card-grid">${movies.map(m => buildMovieCard(m)).join('')}</div>
@@ -398,9 +401,9 @@ function renderSeriesListPage(): void {
   }
 
   app.innerHTML = `
-<div style="padding:40px 40px 8px">
-  <h1 style="font-size:28px;font-weight:800;letter-spacing:-0.5px;margin-bottom:4px">TV Shows & Series</h1>
-  <p style="color:var(--text-2);font-size:14px">${series.length} show${series.length !== 1 ? 's' : ''}</p>
+<div class="page-header">
+  <h1>TV Shows &amp; Series</h1>
+  <p>${series.length} show${series.length !== 1 ? 's' : ''}</p>
 </div>
 <div class="section">
   <div class="card-grid">${series.map(s => buildSeriesCard(s)).join('')}</div>
@@ -617,8 +620,8 @@ function mountPlayer(
   currentEp: Episode | null,
   series: Series | null
 ): void {
-  const container = $('#player-container');
-  if (!container) return;
+  const containerEl = $('#player-container');
+  if (!containerEl) return;
 
   const src = `${BACKEND_URL}/api/v1/video/${videoId}/raw`;
 
@@ -627,70 +630,66 @@ function mountPlayer(
       container: '#player-container',
       src,
       autoplay: true,
-      controls: true,
+      controls: false,
       plugins: [
         new AnalyticsPlugin({ endpoint: `${BACKEND_URL}/api/v1/events`, videoId, heartbeatIntervalMs: 5000 }),
       ],
     });
 
-    // Seek to resume point after player is ready
-    if (startAt > 5) {
-      player.on('timeupdate', function seekOnce() {
-        if (player && player.getDuration() > 0) {
-          player.seek(startAt);
-          player.off('timeupdate', seekOnce as any);
-        }
-      });
-    }
+    const videoEl = player.getVideoElement();
+    videoEl.controls  = false;
+    videoEl.style.cssText = 'width:100%;height:100%;display:block;object-fit:contain;';
 
-    // Save progress
-    let progressTimer: ReturnType<typeof setInterval> | null = null;
-    player.on('play', () => {
-      progressTimer = setInterval(() => {
-        if (!player) return;
-        const t = player.getCurrentTime();
-        const d = player.getDuration();
-        if (d > 0) saveProgress(videoId, t, d);
-      }, 3000);
-    });
-    player.on('pause', () => { if (progressTimer) clearInterval(progressTimer); });
-    player.on('ended',  () => {
-      if (progressTimer) clearInterval(progressTimer);
-      clearProgress(videoId);
+    // Determine saved progress for resume banner
+    const savedProg = getProgress(videoId);
+    const hasSaved  = savedProg && savedProg.pct > 2 && savedProg.pct < 96;
 
-      // Auto-play next episode
-      if (currentEp && allEps.length > 1) {
-        const curIdx  = allEps.findIndex(e => e.id === videoId);
-        const nextEp  = allEps[curIdx + 1];
-        if (nextEp) showUpNext(nextEp, series!);
+    // Inject custom controls (skip, PiP, speed, fullscreen, resume …)
+    controlsCleanup = injectPlayerControls(
+      player.getContainer(),
+      videoEl,
+      {
+        videoId,
+        savedProgress: hasSaved ? savedProg! : null,
+        onSaveProgress:  (t, d) => saveProgress(videoId, t, d),
+        onClearProgress: ()     => clearProgress(videoId),
+        onEnded: () => {
+          // Auto-play next episode when video ends
+          if (currentEp && allEps.length > 1) {
+            const curIdx = allEps.findIndex(e => e.id === videoId);
+            const nextEp = allEps[curIdx + 1];
+            if (nextEp) showUpNext(nextEp, series!);
+          }
+        },
       }
-    });
+    );
 
-    // Up next at 30s before end
+    // Up-next overlay at 30 seconds before end
     if (currentEp && allEps.length > 1) {
       const curIdx = allEps.findIndex(e => e.id === videoId);
       const nextEp = allEps[curIdx + 1];
       if (nextEp) {
-        player.on('timeupdate', () => {
-          if (!player) return;
-          const d = player.getDuration();
-          const t = player.getCurrentTime();
-          if (d > 0 && d - t <= 30 && d - t > 0) {
+        videoEl.addEventListener('timeupdate', () => {
+          const d = videoEl.duration;
+          const t = videoEl.currentTime;
+          if (isFinite(d) && d > 0 && d - t <= 30 && d - t > 0) {
             const ovl = $('#up-next-overlay');
             if (ovl && !ovl.classList.contains('show')) showUpNext(nextEp, series!);
           }
         });
       }
     }
+
   } catch (e) {
     console.error('Player mount failed:', e);
-    container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:16px;padding:32px;text-align:center">
+    containerEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;flex-direction:column;gap:16px;padding:32px;text-align:center;background:#000">
       <div style="font-size:48px">⚠️</div>
-      <div style="font-size:16px;font-weight:600">Playback Error</div>
-      <div style="font-size:13px;color:var(--text-2)">Could not load player. Check the server log.</div>
+      <div style="font-size:16px;font-weight:600;color:#f5f5f5">Playback Error</div>
+      <div style="font-size:13px;color:#a0a0a0">Could not load player. Check the server log.</div>
     </div>`;
   }
 }
+
 
 // ═══════════════════════════════════════════════════════════
 // UP NEXT OVERLAY
@@ -746,7 +745,8 @@ function clearUpNext(): void {
 // ═══════════════════════════════════════════════════════════
 function destroyPlayer(): void {
   clearUpNext();
-  if (player) { try { player.destroy(); } catch (_) {} player = null; }
+  if (controlsCleanup) { try { controlsCleanup(); } catch (_) {} controlsCleanup = null; }
+  if (player)          { try { player.destroy();   } catch (_) {} player = null; }
 }
 
 // ═══════════════════════════════════════════════════════════

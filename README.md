@@ -1,10 +1,9 @@
 # 🎬 Kuber Player
 
-> A professional, open-source video streaming platform — decoupled backend engine and frontend player SDK.
+> A self-hosted, open-source personal streaming platform — watch your local movies and series from any device on your network, with a Netflix-style interface.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![Rust](https://img.shields.io/badge/Rust-1.78+-CE422B?logo=rust)](https://www.rust-lang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js)](https://nodejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite)](https://vitejs.dev/)
 
@@ -15,22 +14,21 @@
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
+- [Media Folder Layout](#media-folder-layout)
 - [Quick Start](#quick-start)
-- [Backend](#backend)
-  - [Mock Server Node.js](#mock-server-nodejs--development)
-  - [Production Server Rust](#production-server-rust)
-  - [REST API Reference](#rest-api-reference)
-- [Frontend Player SDK](#frontend-player-sdk)
-  - [Installation](#installation)
-  - [Basic Usage](#basic-usage)
-  - [Player Options](#player-options)
-  - [Events](#events)
-  - [API Methods](#api-methods)
-  - [Built-in Plugins](#built-in-plugins)
-  - [Framework Wrappers](#framework-wrappers)
-- [Media Folder](#media-folder)
-- [Running on Local Network](#running-on-local-network)
-- [Keyboard Shortcuts](#keyboard-shortcuts)
+  - [Windows](#windows)
+  - [Linux / VPS](#linux--vps)
+  - [macOS](#macos)
+- [Backend Reference](#backend-reference)
+  - [REST API](#rest-api-reference)
+- [Frontend Features](#frontend-features)
+  - [Player Controls](#player-controls)
+  - [Keyboard Shortcuts](#keyboard-shortcuts)
+  - [Mobile Gestures](#mobile-gestures)
+- [Cloudflare Tunnel (Public Access)](#cloudflare-tunnel-public-access)
+- [Local Network Access](#local-network-access)
+- [Player SDK](#player-sdk)
+- [Plugin System](#plugin-system)
 - [Development Commands](#development-commands)
 - [Roadmap](#roadmap)
 - [License](#license)
@@ -39,63 +37,72 @@
 
 ## Overview
 
-**Kuber Player** is a full-stack video streaming system split into two completely independent projects:
-
-| Project | Technology | Role |
-|---------|-----------|------|
-| **Kuber Backend** | Rust (Axum) + SQLite + FFmpeg | REST API, transcoding engine, HLS packaging, analytics |
-| **Kuber Frontend** | TypeScript + Vite + hls.js | Player SDK, UI controls, plugin system, framework wrappers |
-
-The two projects communicate **only through the REST API**. Any frontend — React, Vue, Angular, Svelte, a mobile app, or a plain HTML page — can consume the backend without modification.
+**Kuber Player** is a self-hosted video streaming server you run on your own PC or VPS. Drop your media files into the `media/` folder and instantly stream them from any browser — phone, tablet, PC — with a professional Netflix-style interface.
 
 ### Key Features
 
-- **Native video playback** — streams local media files (MKV, MP4, WebM, AVI, MOV) directly via byte-range HTTP with full seeking support
-- **HLS streaming** — full Apple HLS support via hls.js for remote/transcoded streams
-- **Plugin architecture** — composable plugins for analytics, watermarking, sponsor-skip, and heatmaps
-- **Live analytics dashboard** — real-time watch time, buffer stalls, completion rates
-- **Live server log viewer** — built-in terminal-style SSE log stream in the UI
-- **Network streaming** — accessible from any device on your local network
-- **Framework wrappers** — drop-in components for React, Vue, Angular, and Svelte
-- **Full keyboard control** — seek, volume, speed, fullscreen, chapter navigation
-- **Glassmorphic UI** — premium dark-mode design with micro-animations
+| Feature | Description |
+|---------|-------------|
+| 🎬 **Native streaming** | Streams MKV, MP4, WebM, AVI, MOV via byte-range HTTP — no transcoding needed |
+| 📺 **Netflix-style UI** | Hero banner, card rows, series/season/episode browser |
+| 📁 **Series support** | Automatically organises nested folders into Series → Season → Episode |
+| ▶ **Smart player** | Skip ±10s, PiP, speed control, resume where you stopped, auto-play next episode |
+| 📱 **Mobile optimised** | Responsive design, touch gestures, mobile-friendly controls |
+| 🔄 **Continue watching** | Saves progress per video in the browser — resume from exactly where you stopped |
+| ⏭ **Auto-play next** | Shows "Up Next" countdown at 30s before end, auto-advances to next episode |
+| 📡 **Live server log** | Terminal-style SSE log viewer built into the UI |
+| 🌐 **Proxy architecture** | Backend and frontend talk locally — only expose one port for Cloudflare/tunneling |
+| 🔍 **Live search** | Filter your library instantly by title |
+| 🔄 **Auto-detect new files** | Library polls every 4 seconds — drop a file and it appears automatically |
 
 ---
 
 ## Architecture
 
 ```
-+-----------------------------------------------------------+
-|                      Browser / App                        |
-|                                                           |
-|   +-------------------------------------------------------+
-|   |           Kuber Player SDK (TypeScript)               |
-|   |                                                       |
-|   |  KuberPlayer -> PlaybackEngine (hls.js / native)      |
-|   |             -> PlayerUI (Controls, Seek, Settings)    |
-|   |             -> PluginManager                          |
-|   |                  +-- AnalyticsPlugin                  |
-|   |                  +-- WatermarkPlugin                  |
-|   |                  +-- SponsorSkipPlugin                |
-|   |                  +-- HeatmapPlugin                    |
-|   +----------------------------+--------------------------+
-+--------------------------------|--------------------------+
-                                 |  REST API (HTTP/JSON)
-+--------------------------------v--------------------------+
-|                    Kuber Backend                          |
-|                                                          |
-|   Node.js Mock Server (dev) OR Rust/Axum Server (prod)  |
-|                                                          |
-|   GET  /api/v1/videos               -- list media        |
-|   GET  /api/v1/video/:id/raw        -- byte-range stream |
-|   GET  /api/v1/video/:id/stream/:f  -- HLS files         |
-|   POST /api/v1/events               -- analytics ingest  |
-|   GET  /api/v1/analytics            -- aggregated stats  |
-|   GET  /api/v1/logs                 -- SSE log stream    |
-|                                                          |
-|   Storage: media/ folder (raw files) + SQLite (metadata) |
-+----------------------------------------------------------+
+┌─────────────────────────────────────────────────────┐
+│                   Browser / Phone                    │
+│                                                      │
+│  ┌───────────────────────────────────────────────┐  │
+│  │           Kuber Frontend (Vite / TS)           │  │
+│  │                                               │  │
+│  │  SPA Router (home / movies / series / player) │  │
+│  │  PlayerControls (skip, PiP, speed, resume)    │  │
+│  │  KuberPlayer SDK → PlaybackEngine             │  │
+│  │  AnalyticsPlugin → POST /api/v1/events        │  │
+│  └──────────────────┬────────────────────────────┘  │
+│                     │ /api/* (relative URL)          │
+│                     │ proxied by Vite                │
+└─────────────────────┼───────────────────────────────┘
+                      │ localhost:8080
+┌─────────────────────▼───────────────────────────────┐
+│               Kuber Backend (Node.js)                │
+│                                                      │
+│  GET  /api/v1/library           → media tree JSON   │
+│  GET  /api/v1/videos            → flat video list   │
+│  GET  /api/v1/video/:id/raw     → byte-range stream │
+│  GET  /api/v1/video/:id/stream/ → HLS / poster      │
+│  POST /api/v1/events            → analytics ingest  │
+│  GET  /api/v1/analytics         → stats             │
+│  GET  /api/v1/logs              → SSE log stream    │
+│  GET  /api/v1/system/health     → health check      │
+│                                                      │
+│  media/ folder ← auto-scanned on every request      │
+└─────────────────────────────────────────────────────┘
 ```
+
+### Proxy Architecture (Key Design)
+
+The Vite dev server acts as a **transparent API proxy**:
+
+```
+Browser → http://localhost:3000/api/* → Vite proxy → http://localhost:8080/api/*
+```
+
+This means:
+- **Only port 3000** needs to be exposed publicly (Cloudflare, port-forward, etc.)
+- Port 8080 (backend) stays **local only** — never exposed
+- Works identically on localhost, LAN, and through Cloudflare Tunnel
 
 ---
 
@@ -103,234 +110,273 @@ The two projects communicate **only through the REST API**. Any frontend — Rea
 
 ```
 kuber-player/
-|
-+-- backend/                    # Rust production backend + Node.js dev mock
-|   +-- src/
-|   |   +-- main.rs             # Axum HTTP server entry point
-|   |   +-- domain/             # Domain models (Video, Event, etc.)
-|   |   +-- use_case/           # Business logic (transcode, analytics)
-|   |   +-- infrastructure/     # SQLite, FFmpeg, storage adapters
-|   |   +-- presentation/       # REST controllers, DTOs
-|   +-- mock_server.js          # Zero-dependency Node.js dev server
-|   +-- Cargo.toml
-|
-+-- frontend/                   # TypeScript Player SDK + Dev Sandbox UI
-|   +-- src/
-|   |   +-- main.ts             # Sandbox entry point (demo UI)
-|   |   +-- core/
-|   |   |   +-- KuberPlayer.ts      # Main player class (public API)
-|   |   |   +-- PlaybackEngine.ts   # hls.js wrapper + native video fallback
-|   |   |   +-- EventEmitter.ts     # Typed event bus
-|   |   |   +-- PluginManager.ts    # Plugin lifecycle manager
-|   |   |   +-- KeyboardShortcuts.ts
-|   |   +-- plugins/
-|   |   |   +-- AnalyticsPlugin.ts
-|   |   |   +-- WatermarkPlugin.ts
-|   |   |   +-- SponsorSkipPlugin.ts
-|   |   |   +-- HeatmapPlugin.ts
-|   |   +-- ui/
-|   |   |   +-- Controls.ts         # Full player UI
-|   |   |   +-- theme.css           # Glassmorphic design tokens
-|   |   +-- wrappers/
-|   |       +-- ReactWrapper.tsx
-|   |       +-- VueWrapper.vue
-|   |       +-- SvelteWrapper.svelte
-|   |       +-- AngularWrapper.ts
-|   +-- index.html              # Dev sandbox page
-|   +-- vite.config.ts
-|   +-- tsconfig.json
-|   +-- package.json
-|
-+-- media/                      # Drop video files here -- auto-detected
-+-- docs/
-+-- examples/
-+-- README.md
+│
+├── backend/
+│   ├── mock_server.js          # Zero-dependency Node.js server (main backend)
+│   └── data/
+│       └── streaming/          # Generated HLS playlists & poster images
+│
+├── frontend/
+│   ├── index.html              # SPA shell
+│   ├── vite.config.ts          # Proxy config: /api/* → localhost:8080
+│   ├── tsconfig.json
+│   ├── package.json
+│   └── src/
+│       ├── main.ts             # Full SPA: router, pages, player mount, search
+│       ├── core/
+│       │   ├── KuberPlayer.ts      # Player class (public API)
+│       │   ├── PlaybackEngine.ts   # hls.js + native byte-range video
+│       │   ├── EventEmitter.ts     # Typed event bus
+│       │   ├── PluginManager.ts    # Plugin lifecycle
+│       │   └── KeyboardShortcuts.ts
+│       ├── plugins/
+│       │   ├── AnalyticsPlugin.ts  # Auto-reports play/pause/seek/heartbeat
+│       │   ├── WatermarkPlugin.ts
+│       │   ├── SponsorSkipPlugin.ts
+│       │   └── HeatmapPlugin.ts
+│       └── ui/
+│           ├── PlayerControls.ts   # Custom overlay: skip, PiP, speed, resume
+│           ├── Controls.ts         # Legacy full UI (unused in SPA mode)
+│           └── theme.css           # Complete design system (dark, mobile-first)
+│
+├── media/                      # ← Drop your videos here
+├── start.bat                   # Windows one-click start
+├── start.sh                    # Linux/Mac one-click start
+└── README.md
 ```
+
+---
+
+## Media Folder Layout
+
+Kuber Player automatically organises your media based on your folder structure.
+
+### Movies (flat files)
+
+Drop video files directly into `media/`:
+
+```
+media/
+├── Inception.2010.1080p.mkv          → appears as a Movie card
+├── The.Dark.Knight.2008.mkv          → appears as a Movie card
+└── Interstellar.2014.mp4             → appears as a Movie card
+```
+
+### Series (nested folders)
+
+Create a folder per show. Inside, create Season folders, then put episodes inside:
+
+```
+media/
+└── Breaking Bad/
+    ├── Season 1/
+    │   ├── S01E01 - Pilot.mkv
+    │   ├── S01E02 - Cat's in the Bag.mkv
+    │   └── S01E03 - And the Bag's in the River.mkv
+    ├── Season 2/
+    │   ├── S02E01 - Seven Thirty-Seven.mkv
+    │   └── S02E02 - Down.mkv
+    └── Season 3/
+        └── S03E01 - No Más.mkv
+```
+
+This automatically appears as a **Series card** with season tabs and episode list — just like Netflix.
+
+> **Flat series** (no Season folders) also work — all episodes go under "Season 1" automatically.
+
+### Supported Formats
+
+| Format | Extension |
+|--------|-----------|
+| MP4 / M4V | `.mp4`, `.m4v` |
+| Matroska | `.mkv` |
+| WebM | `.webm` |
+| AVI | `.avi` |
+| QuickTime | `.mov` |
+| Windows Media | `.wmv` |
+| Flash Video | `.flv` |
+| MPEG-TS | `.ts` |
 
 ---
 
 ## Quick Start
 
-### Prerequisites
+### Windows
 
-| Tool | Version | Required For |
-|------|---------|-------------|
-| [Node.js](https://nodejs.org/) | >= 18 | Mock server + frontend dev |
-| [npm](https://npmjs.com/) | >= 9 | Frontend dependencies |
-| [Rust + Cargo](https://rustup.rs/) | >= 1.78 | Production backend only |
-| [FFmpeg](https://ffmpeg.org/) | >= 6 | Production transcoding only |
+**Option 1 — Double-click start (recommended):**
 
-### 1. Clone the repository
+Double-click `start.bat` in the project root. It starts both the backend and frontend automatically.
 
-```bash
-git clone https://github.com/yourusername/kuber-player.git
-cd kuber-player
-```
+**Option 2 — Manual (two CMD windows):**
 
-### 2. Install frontend dependencies
-
-```bash
-cd frontend
-npm install
-```
-
-### 3. Start the development servers
-
-Open **two separate terminal/CMD windows**:
-
-**CMD Window 1 — Backend API server:**
 ```cmd
+:: Window 1 — Backend
 cd /d "D:\kuber player\backend"
 node mock_server.js
-```
 
-**CMD Window 2 — Frontend dev server:**
-```cmd
+:: Window 2 — Frontend
 cd /d "D:\kuber player\frontend"
 npx vite --host 0.0.0.0 --port 3000 --force
 ```
 
-### 4. Open in browser
-
-```
-http://localhost:3000
-```
-
-That's it. Drop any video file into the `media/` folder and it will appear in the UI within 2 seconds automatically.
+Open **http://localhost:3000** in your browser.
 
 ---
 
-## Backend
+### Linux / VPS
 
-### Mock Server (Node.js) — Development
+```bash
+# Clone and enter project
+git clone https://github.com/yourusername/kuber-player.git
+cd kuber-player
 
-The file `backend/mock_server.js` is a **zero-dependency** Node.js server requiring nothing beyond Node.js itself. It is the recommended way to run Kuber Player during development.
+# Install frontend dependencies
+cd frontend && npm install && cd ..
 
-**Start:**
-```cmd
+# Make start script executable
+chmod +x start.sh
+
+# Start everything
+./start.sh
+```
+
+Or manually in two terminals:
+
+```bash
+# Terminal 1 — Backend
 cd backend
 node mock_server.js
+
+# Terminal 2 — Frontend
+cd frontend
+npx vite --host 0.0.0.0 --port 3000 --force
 ```
 
-**What it does:**
-- Scans the `media/` folder on startup and on every API list request
-- Serves video files as byte-range HTTP streams so browsers can seek natively into large files
-- Generates HLS playlist files for streaming
-- Accepts and aggregates analytics events in memory
-- Streams live server logs to the frontend UI via SSE
-- Runs on port **8080** bound to all network interfaces (`0.0.0.0`)
-
-**Supported media formats:**
-
-| Format | Extension | MIME Type |
-|--------|-----------|-----------|
-| MP4 | `.mp4`, `.m4v` | `video/mp4` |
-| Matroska | `.mkv` | `video/x-matroska` |
-| WebM | `.webm` | `video/webm` |
-| AVI | `.avi` | `video/x-msvideo` |
-| QuickTime | `.mov` | `video/quicktime` |
-| Windows Media | `.wmv` | `video/x-ms-wmv` |
-| Flash Video | `.flv` | `video/x-flv` |
+Open **http://localhost:3000** in your browser.
 
 ---
 
-### Production Server (Rust)
+### macOS
 
-The production backend uses the **Axum** web framework with clean architecture.
+Same as Linux. Use `./start.sh` or the two-terminal manual approach above.
 
-**Build and run:**
-```bash
-cd backend
+---
 
-# Debug build (faster compile)
-cargo run
+### Prerequisites
 
-# Optimised release build
-cargo build --release
-./target/release/kuber-backend
-```
+| Tool | Version | Required For |
+|------|---------|-------------|
+| [Node.js](https://nodejs.org/) | ≥ 18 | Backend + frontend |
+| [npm](https://npmjs.com/) | ≥ 9 | Frontend dependencies |
 
-**Environment variables:**
+---
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `8080` | HTTP listening port |
-| `DATABASE_URL` | `./kuber.db` | SQLite database path |
-| `MEDIA_DIR` | `../media` | Media file storage directory |
-| `STREAM_DIR` | `./data/streaming` | HLS output directory |
-| `FFMPEG_PATH` | `ffmpeg` | Path to the FFmpeg binary |
-| `MAX_UPLOAD_SIZE_MB` | `4096` | Maximum upload size in MB |
+## Backend Reference
+
+The backend is `backend/mock_server.js` — a single zero-dependency Node.js file.
+
+**Starts on:** `http://0.0.0.0:8080`
+
+**What it does on startup:**
+1. Scans `media/` for all video files and subfolders
+2. Registers each video (or series/episode) with a generated ID
+3. Creates HLS playlist stubs for the streaming endpoints
+4. Generates poster images
+
+**What it does on each request:**
+- `GET /api/v1/library` — re-scans `media/` and returns the full hierarchical structure
+- `GET /api/v1/videos` — re-scans and returns a flat list
+- All other endpoints — serve from in-memory state
 
 ---
 
 ### REST API Reference
 
-**Base URL:** `http://localhost:8080`
-
-All responses use `Content-Type: application/json` unless otherwise noted.
-All endpoints include CORS headers (`Access-Control-Allow-Origin: *`).
+**Base URL:** `http://localhost:8080`  
+All responses are JSON unless noted. All endpoints include `Access-Control-Allow-Origin: *`.
 
 ---
 
-#### GET /api/v1/videos
+#### `GET /api/v1/library`
 
-List all registered videos. Also triggers a fresh scan of the `media/` folder.
+Returns the complete media library as a structured tree — movies at root level, series with their seasons and episodes. **This is the primary endpoint used by the frontend.**
 
-**Response 200:**
-```json
-[
-  {
-    "id": "the_dark_knight",
-    "title": "The Dark Knight",
-    "filename": "the_dark_knight.mkv",
-    "status": "completed",
-    "duration": 9180.0,
-    "width": 1920,
-    "height": 1080,
-    "bitrate": 8000000,
-    "codec": "h264/aac",
-    "size": 8589934592,
-    "error_message": null
-  }
-]
-```
-
----
-
-#### GET /api/v1/video/:id
-
-Get full details for a single video including chapter markers.
-
-**Response 200:**
 ```json
 {
-  "video": {
-    "id": "the_dark_knight",
-    "title": "The Dark Knight",
-    "filename": "the_dark_knight.mkv",
-    "status": "completed",
-    "duration": 9180.0,
-    "width": 1920,
-    "height": 1080,
-    "bitrate": 8000000,
-    "codec": "h264/aac",
-    "size": 8589934592,
-    "error_message": null
-  },
-  "chapters": [
-    { "id": "c1", "video_id": "the_dark_knight", "title": "Introduction", "start_time": 0.0, "end_time": 1377.0 },
-    { "id": "c2", "video_id": "the_dark_knight", "title": "Act I",        "start_time": 1377.0, "end_time": 3672.0 },
-    { "id": "c3", "video_id": "the_dark_knight", "title": "Act II",       "start_time": 3672.0, "end_time": 6885.0 },
-    { "id": "c4", "video_id": "the_dark_knight", "title": "Finale",       "start_time": 6885.0, "end_time": 9180.0 }
+  "movies": [
+    {
+      "id": "inception_2010_1080p",
+      "title": "Inception.2010.1080p",
+      "type": "movie",
+      "filename": "Inception.2010.1080p.mkv",
+      "size": 8589934592,
+      "duration": 8880,
+      "thumbnail": "/api/v1/video/inception_2010_1080p/thumbnail"
+    }
+  ],
+  "series": [
+    {
+      "id": "breaking_bad",
+      "title": "Breaking Bad",
+      "type": "series",
+      "seasons": [
+        {
+          "number": 1,
+          "title": "Season 1",
+          "episodes": [
+            {
+              "id": "breaking_bad_s1_e1",
+              "title": "S01E01 - Pilot",
+              "number": 1,
+              "seasonNumber": 1,
+              "size": 1073741824,
+              "duration": 3180,
+              "thumbnail": "/api/v1/video/breaking_bad_s1_e1/thumbnail",
+              "seriesId": "breaking_bad"
+            }
+          ]
+        }
+      ]
+    }
   ]
 }
 ```
 
 ---
 
-#### GET /api/v1/video/:id/raw
+#### `GET /api/v1/videos`
 
-Stream the actual video file with full **byte-range** support. This is the primary playback endpoint for local media files. The browser's native `<video>` element can use this URL directly with seeking working out of the box.
+Returns a flat array of all registered video records (movies + episodes). Also triggers a fresh media folder scan.
+
+---
+
+#### `GET /api/v1/video/:id`
+
+Returns full details for a single video.
+
+```json
+{
+  "video": {
+    "id": "inception_2010_1080p",
+    "title": "Inception.2010.1080p",
+    "filepath": "D:\\kuber player\\media\\Inception.2010.1080p.mkv",
+    "status": "completed",
+    "duration": 8880,
+    "width": 1920,
+    "height": 1080,
+    "bitrate": 8000000,
+    "codec": "h264/aac",
+    "size": 8589934592
+  },
+  "chapters": []
+}
+```
+
+---
+
+#### `GET /api/v1/video/:id/raw`
+
+**The primary playback endpoint.** Streams the actual video file with full HTTP byte-range support. The browser's `<video>` element uses this directly — seeking into large multi-GB files works instantly.
 
 **Request headers (optional):**
 ```
@@ -346,344 +392,285 @@ Content-Length: 1048576
 [binary video data]
 ```
 
-**Response 200 (full file, no Range header):**
+**Response 200 (full file):**
 ```
 Content-Type: video/x-matroska
 Content-Length: 1402428710
 Accept-Ranges: bytes
-[binary video data]
 ```
 
 ---
 
-#### GET /api/v1/video/:id/playlist
+#### `GET /api/v1/video/:id/stream/:filename`
 
-Returns the HLS master playlist (`master.m3u8`) listing all available quality variants. Use this as `src` when loading an HLS stream through hls.js.
+Serve HLS playlist and asset files. Valid filenames:
 
-**Response 200:**
-```
-Content-Type: application/x-mpegURL
-
-#EXTM3U
-#EXT-X-VERSION:3
-#EXT-X-STREAM-INF:BANDWIDTH=2500000,RESOLUTION=1280x720
-stream_720p.m3u8
-#EXT-X-STREAM-INF:BANDWIDTH=1000000,RESOLUTION=854x480
-stream_480p.m3u8
-```
+| Filename | Description |
+|----------|-------------|
+| `master.m3u8` | HLS master playlist |
+| `stream_720p.m3u8` | 720p variant |
+| `stream_480p.m3u8` | 480p variant |
+| `poster.jpg` | Poster/thumbnail image |
+| `sprite.vtt` | Seek bar sprite map (WebVTT) |
+| `sprite_001.jpg` | Sprite sheet image |
 
 ---
 
-#### GET /api/v1/video/:id/stream/:filename
+#### `GET /api/v1/video/:id/thumbnail`
 
-Serve individual HLS stream files. Valid filenames:
-- `master.m3u8` — master playlist
-- `stream_720p.m3u8` — 720p variant playlist
-- `stream_480p.m3u8` — 480p variant playlist
-- `poster.jpg` — poster thumbnail
-- `sprite.vtt` — seek thumbnail WebVTT map
-- `sprite_001.jpg` — sprite sheet image
+Alias → `stream/poster.jpg`. Returns `image/jpeg`.
 
 ---
 
-#### GET /api/v1/video/:id/thumbnail
+#### `DELETE /api/v1/video/:id`
 
-Alias for `/api/v1/video/:id/stream/poster.jpg`. Returns the poster image (`image/jpeg`).
-
----
-
-#### GET /api/v1/video/:id/sprite
-
-Alias for `/api/v1/video/:id/stream/sprite.vtt`. Returns the WebVTT sprite file for seek bar thumbnail previews.
-
----
-
-#### DELETE /api/v1/video/:id
-
-Delete a video. Removes:
-- The source file from the `media/` folder on disk
-- All generated HLS/stream files
-- The video record from the in-memory database
+Deletes the video file from disk and removes HLS assets and the in-memory record.
 
 **Response:** `204 No Content`
 
 ---
 
-#### POST /api/v1/events
+#### `POST /api/v1/events`
 
-Ingest a player analytics event.
+Ingest an analytics event from the player.
 
-**Request body:**
 ```json
 {
-  "session_id": "abc123def456",
-  "video_id": "the_dark_knight",
+  "session_id": "abc123",
+  "video_id": "inception_2010_1080p",
   "event_type": "play",
-  "watch_time": 42.5,
-  "timestamp": "2026-06-27T14:00:00Z"
+  "watch_time": 120.5,
+  "timestamp": "2026-06-28T05:30:00Z"
 }
 ```
 
-**Event types:**
-
-| Type | Triggered When |
-|------|---------------|
-| `play` | Playback starts |
-| `pause` | Playback paused |
-| `seek` | User seeks in timeline |
-| `buffer` | Buffering / stall detected |
-| `ended` | Video reaches the end |
-| `heartbeat` | Periodic keep-alive during playback |
-| `unload` | Player destroyed / page closed |
-
-**Response:** `200 OK`
+**Event types:** `play`, `pause`, `seek`, `buffer`, `ended`, `heartbeat`, `unload`
 
 ---
 
-#### GET /api/v1/analytics
+#### `GET /api/v1/analytics`
 
-Get aggregated global analytics across all videos and sessions.
+Global aggregated stats across all sessions.
 
-**Response 200:**
 ```json
 {
-  "total_views": 128,
+  "total_views": 42,
   "avg_watch_time": 3240.5,
   "avg_completion": 67.3,
-  "total_buffers": 12,
-  "avg_buffer_duration": 1.2,
-  "device_distribution": {
-    "desktop": 95,
-    "mobile": 33
-  }
-}
-```
-
----
-
-#### GET /api/v1/video/:id/analytics
-
-Get per-video analytics for a specific video.
-
-**Response 200:**
-```json
-{
-  "video_id": "the_dark_knight",
-  "total_plays": 45,
-  "unique_sessions": 38,
-  "total_watch_time": 145800.0,
-  "avg_watch_time": 3240.0,
   "total_buffers": 5,
-  "avg_buffer_duration": 0.9,
-  "completion_rate": 71.2,
-  "device_breakdown": {
-    "desktop": 30,
-    "mobile": 15
-  }
+  "avg_buffer_duration": 1.2
 }
 ```
 
 ---
 
-#### GET /api/v1/system/health
+#### `GET /api/v1/video/:id/analytics`
 
-System health check endpoint. Use this for monitoring or uptime checks.
+Per-video analytics.
 
-**Response 200:**
+---
+
+#### `GET /api/v1/system/health`
+
 ```json
-{
-  "status": "healthy",
-  "database": "ok",
-  "storage": "ok",
-  "media_count": 7
-}
+{ "status": "healthy", "database": "ok", "storage": "ok", "media_count": 7 }
 ```
 
 ---
 
-#### GET /api/v1/logs
+#### `GET /api/v1/logs`
 
-Opens a persistent **Server-Sent Events (SSE)** connection. The server pushes all log entries in real time as they happen. The frontend Live Log panel subscribes to this endpoint automatically.
+Opens a persistent **SSE (Server-Sent Events)** connection. The frontend Live Log panel subscribes to this automatically.
 
-**Response headers:**
 ```
 Content-Type: text/event-stream
-Cache-Control: no-cache
-Connection: keep-alive
-```
 
-**Event format:**
-```
-data: {"ts":"2026-06-27T14:09:20Z","level":"HTTP","msg":"GET /api/v1/videos"}
-
-data: {"ts":"2026-06-27T14:09:21Z","level":"INFO","msg":"RAW range: bytes=0-1048575/1402428710 (1.00MB)"}
-
+data: {"ts":"2026-06-28T05:30:01Z","level":"HTTP","msg":"GET /api/v1/library"}
+data: {"ts":"2026-06-28T05:30:01Z","level":"INFO","msg":"RAW bytes=0-1048575/1402428710"}
 : ping
 ```
 
 **Log levels:**
 
-| Level | UI Colour | Description |
-|-------|-----------|-------------|
-| `HTTP` | Blue | All incoming HTTP requests |
+| Level | Colour | Description |
+|-------|--------|-------------|
+| `HTTP` | Blue | Incoming HTTP requests |
 | `INFO` | Green | Server info, file discovery, byte-range serves |
 | `WARN` | Amber | Non-fatal warnings |
-| `ERROR` | Red | Errors and failures |
-| `EVENT` | Purple | Analytics events received from the player |
+| `ERROR` | Red | Errors |
+| `EVENT` | Purple | Analytics events from the player |
 
 ---
 
-## Frontend Player SDK
+## Frontend Features
 
-### Installation
+### Pages
 
-```bash
-cd frontend
-npm install
-```
-
-The SDK is framework-agnostic TypeScript. Import `KuberPlayer` directly from `src/core/KuberPlayer.ts`.
+| Page | URL Hash | Description |
+|------|----------|-------------|
+| **Home** | `#home` | Hero banner + Movies row + Series row + Continue Watching |
+| **Movies** | `#movies` | Full grid of all movie files |
+| **Series** | `#series` | Full grid of all series |
+| **Series Detail** | `#series/:id` | Season tabs, episode list with progress |
+| **Player** | `#play/:id` | Video player + episode sidebar (for series) |
 
 ---
 
-### Basic Usage
+### Player Controls
+
+The player uses a **custom overlay** (`PlayerControls.ts`) with the following controls:
+
+| Control | Description |
+|---------|-------------|
+| **▶ / ⏸ Play/Pause** | Large center button |
+| **⏪ Skip -10s** | Jump back 10 seconds |
+| **⏩ Skip +10s** | Jump forward 10 seconds |
+| **Progress bar** | Click or drag to seek · Shows buffered (white) and played (indigo) |
+| **Time tooltip** | Hover over seek bar to preview timestamp |
+| **🔊 Volume** | Slider + mute button |
+| **⚡ Speed** | Popup menu: 0.25× / 0.5× / 0.75× / 1× / 1.25× / 1.5× / 1.75× / 2× |
+| **📺 PiP** | Picture in Picture — watch while browsing other tabs |
+| **⛶ Fullscreen** | Fills the entire screen |
+| **Auto-hide** | Controls fade out after 3 seconds of inactivity |
+| **Resume banner** | Auto-seeks to last saved position, shows "Start Over" option |
+
+### Continue Watching
+
+Progress is saved to `localStorage` every 3 seconds while playing. When you re-open a video:
+- It automatically resumes from where you stopped
+- A banner shows "Resumed from X:XX" with a **Start Over** button
+- Banner auto-dismisses after 5 seconds
+- Progress is cleared when the video finishes
+
+### Auto-play Next Episode
+
+For series:
+- An **"Up Next"** overlay appears 30 seconds before the current episode ends
+- A 10-second countdown auto-advances to the next episode
+- Buttons to **Play Now** or **Cancel**
+
+---
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Space` or `K` | Play / Pause |
+| `←` Arrow Left | Skip back 10 seconds |
+| `→` Arrow Right | Skip forward 10 seconds |
+| `↑` Arrow Up | Volume up 10% |
+| `↓` Arrow Down | Volume down 10% |
+| `M` | Toggle mute |
+| `F` | Toggle fullscreen |
+| `P` | Toggle Picture in Picture |
+
+---
+
+### Mobile Gestures
+
+| Gesture | Action |
+|---------|--------|
+| **Single tap** | Show / hide controls |
+| **Double-tap left side** | Skip back 10 seconds (with ripple animation) |
+| **Double-tap right side** | Skip forward 10 seconds (with ripple animation) |
+| **Drag on seek bar** | Seek to position |
+
+---
+
+### Search
+
+The search bar in the navigation bar filters your library live as you type. Works across movie titles and series names on the Home, Movies, and Series pages.
+
+---
+
+## Cloudflare Tunnel (Public Access)
+
+Kuber Player is designed to work seamlessly with Cloudflare Tunnel. Because the frontend proxies all `/api/*` calls internally to the backend on `localhost:8080`, **you only need to expose one port**.
+
+### Setup
+
+1. Start both servers as described in [Quick Start](#quick-start)
+2. Install `cloudflared`:
+   ```bash
+   # Windows
+   winget install Cloudflare.cloudflared
+
+   # Linux
+   curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
+   chmod +x cloudflared && sudo mv cloudflared /usr/local/bin/
+   ```
+3. Create a tunnel for the **frontend only**:
+   ```bash
+   cloudflared tunnel --url http://localhost:3000
+   ```
+4. Cloudflare gives you a public URL like `https://xxxx.trycloudflare.com`. Open that URL on any device.
+
+> **No need to tunnel port 8080.** The backend stays local and private.
+
+---
+
+## Local Network Access
+
+To watch on your phone or tablet on the same Wi-Fi:
+
+1. Find your PC's local IP:
+   - **Windows:** `ipconfig` → look for `IPv4 Address` (e.g. `192.168.1.10`)
+   - **Linux:** `hostname -I`
+2. On your phone, open: `http://192.168.1.10:3000`
+
+Both servers listen on `0.0.0.0` so they accept connections from any device on the network.
+
+---
+
+## Player SDK
+
+If you want to embed the player in your own app or website:
 
 ```typescript
 import { KuberPlayer } from './core/KuberPlayer';
+import { AnalyticsPlugin } from './plugins/AnalyticsPlugin';
 
 const player = new KuberPlayer({
-  container: document.getElementById('my-player')!,
+  container: '#my-player-div',
   src: 'http://localhost:8080/api/v1/video/my_movie/raw',
-  poster: 'http://localhost:8080/api/v1/video/my_movie/thumbnail',
-  autoplay: true,
-  muted: false,
+  autoplay: false,
+  controls: false,           // false = handle UI yourself
+  plugins: [
+    new AnalyticsPlugin({
+      endpoint: 'http://localhost:8080/api/v1/events',
+      videoId:  'my_movie',
+      heartbeatIntervalMs: 5000,
+    }),
+  ],
 });
 
-player.on('ready', () => {
-  console.log('Player is ready. Duration:', player.getDuration());
-});
+// Events
+player.on('play',       () => console.log('Playing'));
+player.on('pause',      () => console.log('Paused'));
+player.on('timeupdate', () => console.log(player.getCurrentTime()));
+player.on('ended',      () => console.log('Done'));
 
-player.on('timeupdate', () => {
-  console.log('Current time:', player.getCurrentTime());
-});
+// Methods
+player.play();
+player.pause();
+player.seek(120);              // Jump to 2 minutes
+player.setVolume(0.8);         // 80% volume
+player.setPlaybackRate(1.5);   // 1.5× speed
+player.getDuration();          // Total seconds
+player.getCurrentTime();       // Current position
 
-// Clean up when done
+// Cleanup
 player.destroy();
 ```
 
----
-
-### Player Options
-
-```typescript
-interface PlayerOptions {
-  // Required
-  container: string | HTMLElement;  // CSS selector string or DOM element
-
-  // Required
-  src: string;
-  // Pass a raw file URL  (/api/v1/video/:id/raw)   for local MKV/MP4/WebM
-  // Pass an HLS URL     (/api/v1/video/:id/playlist) for HLS streams
-  // The player auto-detects which mode to use.
-
-  // Optional
-  poster?: string;          // Poster/thumbnail image URL
-  spriteVtt?: string;       // WebVTT URL for seek bar thumbnail previews
-  autoplay?: boolean;       // Auto-start playback. Default: false
-  muted?: boolean;          // Start muted. Default: false
-  controls?: boolean;       // Render built-in UI controls. Default: true
-  plugins?: PlayerPlugin[]; // Array of plugin instances
-}
-```
-
-> **Note on src detection:** If the `src` URL does not end in `.m3u8` and does not contain `playlist`, the player uses the native HTML5 `<video>` element with byte-range support — enabling instant seeking into multi-gigabyte files without any transcoding. If the `src` is an `.m3u8` URL, hls.js is used for full HLS adaptive bitrate streaming.
+> **Source detection:** If `src` ends with `.m3u8` → uses `hls.js` for HLS adaptive streaming. Otherwise → uses the native `<video>` element with byte-range HTTP for local files. Seeking into a 10GB MKV works instantly with no transcoding.
 
 ---
 
-### Events
+## Plugin System
 
-Listen to player events with `player.on(eventName, callback)`:
+All plugins implement this interface:
 
-```typescript
-// Lifecycle
-player.on('ready',          () => {})          // Player fully initialised and ready
-player.on('play',           () => {})          // Playback started
-player.on('pause',          () => {})          // Playback paused
-player.on('ended',          () => {})          // Video finished
-
-// Time & Progress
-player.on('timeupdate',     (e: Event) => {})  // Current time changed (fires frequently)
-player.on('seeking',        (e: Event) => {})  // User initiated a seek
-player.on('seeked',         (e: Event) => {})  // Seek completed
-player.on('progress',       (e: Event) => {})  // Buffer progress updated
-player.on('durationchange', (e: Event) => {})  // Video duration became known
-
-// Buffering
-player.on('waiting',        (e: Event) => {})  // Buffering started (player stalled)
-player.on('playing',        (e: Event) => {})  // Buffering ended, playback resumed
-
-// Volume & Speed
-player.on('volumechange',   (e: Event) => {})  // Volume or mute state changed
-player.on('ratechange',     (e: Event) => {})  // Playback speed changed
-
-// HLS-specific
-player.on('qualities',      (q: QualityLevel[]) => {})   // Quality levels parsed from manifest
-player.on('qualityChanged', (info: object) => {})        // Active quality level switched
-player.on('manifestLoaded', () => {})                    // HLS manifest fully parsed
-
-// Errors
-player.on('error',          (err: any) => {})  // Fatal playback error
-player.on('warn',           (data: any) => {}) // Non-fatal hls.js warning
-```
-
----
-
-### API Methods
-
-```typescript
-// --- Playback ---
-player.play(): Promise<void>          // Start / resume playback
-player.pause(): void                  // Pause playback
-player.seek(seconds: number): void    // Jump to a specific time in seconds
-player.destroy(): void                // Tear down the player and remove it from DOM
-
-// --- State ---
-player.getDuration(): number          // Total video duration in seconds
-player.getCurrentTime(): number       // Current playback position in seconds
-player.getBufferedDuration(): number  // Seconds buffered ahead of current position
-player.getOptions(): PlayerOptions    // Returns the options object passed to constructor
-
-// --- Volume ---
-player.setVolume(value: number): void // 0.0 (silent) to 1.0 (full)
-player.setMute(muted: boolean): void  // Toggle mute
-
-// --- Speed ---
-player.setPlaybackRate(rate: number): void
-// Recommended values: 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0
-
-// --- Quality (HLS only) ---
-player.setQuality(index: number): void
-// Pass -1 for Auto (ABR). Pass 0, 1, 2... for specific quality levels
-// Quality indices correspond to the levels from the 'qualities' event
-
-// --- Subtitles (HLS only) ---
-player.setSubtitle(index: number): void
-// Pass -1 to disable. Pass 0, 1... for tracks from the 'subtitles' event
-
-// --- Audio Track (HLS only) ---
-player.setAudioTrack(index: number): void
-
-// --- Internals ---
-player.getPlaybackEngine(): PlaybackEngine  // Access underlying PlaybackEngine
-```
-
----
-
-### Built-in Plugins
-
-Plugins are passed as instances in the `plugins` array of `PlayerOptions`. They are initialised after the player is ready and destroyed when `player.destroy()` is called.
-
-All plugins implement the `PlayerPlugin` interface:
 ```typescript
 interface PlayerPlugin {
   name: string;
@@ -692,327 +679,93 @@ interface PlayerPlugin {
 }
 ```
 
----
+### AnalyticsPlugin
 
-#### AnalyticsPlugin
-
-Reports playback lifecycle events to a configurable HTTP endpoint. Sends heartbeat events periodically while the video is playing. Automatically reports `unload` when the page is closed.
+Reports playback events to the backend automatically.
 
 ```typescript
-import { AnalyticsPlugin } from './plugins/AnalyticsPlugin';
-
 new AnalyticsPlugin({
   endpoint: 'http://localhost:8080/api/v1/events',
   videoId: 'my_movie',
-  heartbeatIntervalMs: 5000,   // Default: 5000ms (5 seconds)
+  heartbeatIntervalMs: 5000,
 })
 ```
 
-**Options:**
-| Option | Type | Description |
-|--------|------|-------------|
-| `endpoint` | `string` | URL to POST events to |
-| `videoId` | `string` | Video ID to include in all events |
-| `heartbeatIntervalMs` | `number` | How often to send heartbeats while playing |
+**Auto-reported events:** `play`, `pause`, `seek`, `buffer`, `ended`, `heartbeat` (every 5s), `unload` (on page close)
 
-**Events automatically posted:** `play`, `pause`, `seek`, `buffer`, `ended`, `heartbeat`, `unload`
-
----
-
-#### WatermarkPlugin
-
-Renders a translucent text label overlaid on the player. Useful for branding or DRM-style attribution.
+### WatermarkPlugin
 
 ```typescript
 import { WatermarkPlugin } from './plugins/WatermarkPlugin';
-
-new WatermarkPlugin({
-  text: 'KUBER PLAYER',
-  opacity: 0.25,
-  position: 'top-right',
-})
+new WatermarkPlugin({ text: 'MY STREAM', opacity: 0.2, position: 'top-right' })
 ```
 
-**Options:**
-| Option | Type | Values | Description |
-|--------|------|--------|-------------|
-| `text` | `string` | Any | Text to display |
-| `opacity` | `number` | `0.0` – `1.0` | Transparency level |
-| `position` | `string` | `top-left`, `top-right`, `bottom-left`, `bottom-right` | Corner placement |
-
----
-
-#### SponsorSkipPlugin
-
-Automatically skips over defined time ranges during playback. A notification banner slides in during the skip zone. Use for auto-skipping intros, credits, or sponsor segments.
+### SponsorSkipPlugin
 
 ```typescript
 import { SponsorSkipPlugin } from './plugins/SponsorSkipPlugin';
-
 new SponsorSkipPlugin([
-  { startTime: 0.0,   endTime: 90.0  },   // Skip opening intro (first 90s)
-  { startTime: 310.0, endTime: 345.0 },   // Skip sponsor segment
+  { startTime: 0,   endTime: 90  },   // Skip intro
+  { startTime: 310, endTime: 345 },   // Skip sponsor
 ])
 ```
 
-**Skip range options:**
-| Option | Type | Description |
-|--------|------|-------------|
-| `startTime` | `number` | Start of skip range in seconds |
-| `endTime` | `number` | End of skip range in seconds |
-
----
-
-#### HeatmapPlugin
-
-Renders a waveform-style audience retention heatmap on the seek bar. The heatmap fades in when the user hovers over the seek bar and fades out when they move away.
+### HeatmapPlugin
 
 ```typescript
 import { HeatmapPlugin } from './plugins/HeatmapPlugin';
-
-// Provide an array of percentage values (0-100), one per timeline bucket.
-// More values = higher resolution heatmap.
-new HeatmapPlugin([
-  90, 85, 80, 75, 60, 55, 68, 80, 95, 88,
-  72, 65, 50, 48, 55, 70, 85, 78, 60, 45, 30
-])
+new HeatmapPlugin([90, 85, 80, 75, 60, 55, 68, 80, 95, 88]) // retention per bucket
 ```
-
----
-
-### Framework Wrappers
-
-Pre-built components in `src/wrappers/` let you drop the player into any major framework.
-
-#### React
-
-```tsx
-import { KuberPlayerReact } from './wrappers/ReactWrapper';
-
-function App() {
-  return (
-    <KuberPlayerReact
-      src="http://localhost:8080/api/v1/video/my_movie/raw"
-      poster="http://localhost:8080/api/v1/video/my_movie/thumbnail"
-      autoplay={false}
-      muted={false}
-      className="my-player-wrapper"
-      style={{ width: '100%', aspectRatio: '16/9' }}
-    />
-  );
-}
-```
-
-#### Vue 3
-
-```vue
-<template>
-  <KuberPlayerVue
-    :src="videoUrl"
-    :poster="posterUrl"
-    :autoplay="false"
-    style="width: 100%"
-  />
-</template>
-
-<script setup lang="ts">
-import KuberPlayerVue from './wrappers/VueWrapper.vue';
-const videoUrl = 'http://localhost:8080/api/v1/video/my_movie/raw';
-const posterUrl = 'http://localhost:8080/api/v1/video/my_movie/thumbnail';
-</script>
-```
-
-#### Svelte
-
-```svelte
-<script>
-  import KuberPlayerSvelte from './wrappers/SvelteWrapper.svelte';
-</script>
-
-<KuberPlayerSvelte
-  src="http://localhost:8080/api/v1/video/my_movie/raw"
-  autoplay={false}
-/>
-```
-
-#### Angular
-
-```typescript
-// In app.module.ts
-import { KuberPlayerAngular } from './wrappers/AngularWrapper';
-// Declare it in your NgModule declarations
-
-// In template:
-// <kuber-player [src]="videoUrl" [autoplay]="false"></kuber-player>
-```
-
----
-
-## Media Folder
-
-The `media/` directory in the project root is the **watched media library**.
-
-```
-kuber-player/
-+-- media/
-    +-- my_movie.mkv          <- drop files here
-    +-- documentary.mp4
-    +-- short_clip.webm
-    +-- README.md
-```
-
-**How it works:**
-
-1. Copy or move any supported video file into the `media/` folder
-2. Within **2 seconds**, it automatically appears in the web UI (the frontend polls `/api/v1/videos` every 2 seconds)
-3. Click **Play** next to the video title to start streaming
-4. The **Delete** button removes the file from disk and unregisters it from the UI instantly
-
-No restart is needed. No configuration required. The server detects new files on every list request.
-
-**Supported extensions:** `.mp4` `.mkv` `.webm` `.avi` `.mov` `.m4v` `.wmv` `.flv`
-
----
-
-## Running on Local Network
-
-Access Kuber Player from **any device on your Wi-Fi** — phones, tablets, smart TVs, other laptops.
-
-### Step 1 — Start both servers
-
-**CMD Window 1 (backend):**
-```cmd
-cd /d "D:\kuber player\backend"
-node mock_server.js
-```
-
-**CMD Window 2 (frontend):**
-```cmd
-cd /d "D:\kuber player\frontend"
-npx vite --host 0.0.0.0 --port 3000 --force
-```
-
-### Step 2 — Open Windows Firewall ports
-
-Open **CMD as Administrator** (right-click Start -> "Command Prompt (Admin)") and run:
-
-```cmd
-netsh advfirewall firewall add rule name="Kuber Player Frontend 3000" dir=in action=allow protocol=TCP localport=3000
-
-netsh advfirewall firewall add rule name="Kuber Player Backend 8080" dir=in action=allow protocol=TCP localport=8080
-```
-
-> You only need to do this once. The rules persist across reboots.
-
-### Step 3 — Find your local IP address
-
-```cmd
-ipconfig
-```
-
-Look for **IPv4 Address** under your Wi-Fi adapter, e.g. `192.168.1.6`.
-
-### Step 4 — Open on any device
-
-Connect the device to the **same Wi-Fi network**, then open:
-
-```
-http://192.168.1.6:3000
-```
-
-Replace `192.168.1.6` with your actual IP address from Step 3.
-
-| Device | URL |
-|--------|-----|
-| This PC | `http://localhost:3000` |
-| Phone / Tablet | `http://192.168.1.6:3000` |
-| Backend API | `http://192.168.1.6:8080` |
-
----
-
-## Keyboard Shortcuts
-
-These shortcuts are active whenever the player has focus.
-
-| Key | Action |
-|-----|--------|
-| `Space` | Play / Pause |
-| `Arrow Left` | Seek back 5 seconds |
-| `Arrow Right` | Seek forward 5 seconds |
-| `Arrow Up` | Volume +10% |
-| `Arrow Down` | Volume -10% |
-| `M` | Toggle mute |
-| `F` | Toggle fullscreen |
-| `0` through `9` | Jump to 0% through 90% of the video |
-| `<` | Decrease playback speed |
-| `>` | Increase playback speed |
-| `C` | Toggle subtitles on/off |
 
 ---
 
 ## Development Commands
 
-| Command | Run From | Description |
-|---------|----------|-------------|
-| `node mock_server.js` | `backend/` | Start the development API server |
-| `npx vite --host 0.0.0.0 --port 3000 --force` | `frontend/` | Start frontend dev server (all interfaces) |
-| `npx tsc --noEmit` | `frontend/` | Type-check all TypeScript without emitting files |
-| `npm run build` | `frontend/` | Build production bundle to `frontend/dist/` |
-| `cargo run` | `backend/` | Run the Rust server in debug mode |
-| `cargo build --release` | `backend/` | Build optimised Rust binary |
-| `cargo test` | `backend/` | Run Rust unit tests |
+```bash
+# Install frontend dependencies
+cd frontend && npm install
+
+# Start backend (port 8080)
+cd backend && node mock_server.js
+
+# Start frontend dev server (port 3000, with API proxy)
+cd frontend && npx vite --host 0.0.0.0 --port 3000 --force
+
+# TypeScript type check (no build)
+cd frontend && npx tsc --noEmit
+
+# Production build
+cd frontend && npx vite build
+```
+
+---
+
+## Responsive Design
+
+Kuber Player is built mobile-first and adapts to all screen sizes:
+
+| Breakpoint | Behaviour |
+|-----------|-----------|
+| **Desktop** (>900px) | Full layout with episode sidebar |
+| **Tablet** (≤900px) | Sidebar stacks below player, episode thumbs shrink |
+| **Mobile** (≤600px) | Search hidden, compact nav, episode list without thumbs |
+| **Small** (≤380px) | 2-column card grid, nav links hidden |
 
 ---
 
 ## Roadmap
 
-- [ ] **FFmpeg transcoding pipeline** — auto-convert MKV/AVI to HLS segments on detection
-- [ ] **Multi-quality HLS** — real 1080p / 720p / 480p / 360p renditions from a single source file
-- [ ] **Subtitle track support** — SRT/VTT injection and in-player renderer
-- [ ] **Resume playback** — persist watch position per video in localStorage/IndexedDB
-- [ ] **MPEG-DASH** — DASH manifest support alongside HLS
-- [ ] **Authentication** — API key and JWT-based access control for the backend
-- [ ] **Chromecast / AirPlay** — Cast protocol integration
-- [ ] **Mobile app wrapper** — React Native / Capacitor shell
-- [ ] **CDN-ready storage** — S3 / R2 / GCS remote storage adapters for the Rust backend
-- [ ] **Docker Compose** — one-command containerised deployment
-- [ ] **Thumbnail generation** — real FFmpeg-generated poster and sprite sheets
-- [ ] **Watch party** — synchronised multi-user viewing via WebSockets
+- [ ] User accounts & watch history sync
+- [ ] Subtitle file support (SRT/VTT)
+- [ ] Multiple audio track switching UI
+- [ ] Admin panel for library management
+- [ ] Progressive Web App (PWA) — install to home screen
+- [ ] Chromecast support
+- [ ] Hardware-accelerated transcoding (FFmpeg)
+- [ ] Auto-generated episode thumbnails
 
 ---
 
 ## License
 
-This project is licensed under the **MIT License**.
-
-```
-MIT License
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-```
-
----
-
-## Acknowledgements
-
-- [hls.js](https://github.com/video-dev/hls.js) — HLS playback in the browser
-- [Axum](https://github.com/tokio-rs/axum) — Rust async web framework
-- [Vite](https://vitejs.dev/) — Next-generation frontend tooling
-- [FFmpeg](https://ffmpeg.org/) — Video transcoding and processing engine
-- [SQLite](https://www.sqlite.org/) — Embedded relational database
-
----
-
-Built with love — Kuber Player. Open source. Self-hosted. No subscriptions.
+MIT License — free to use, modify, and self-host. See [LICENSE](LICENSE) for details.
